@@ -1,0 +1,17 @@
+include README
+include TODO
+include ChangeLog
+include doc/aspects-en.txt
+include doc/aspects-fr.txt
+include doc/contracts-en.txt
+include doc/contracts-fr.txt
+include doc/aspects-en.html
+include doc/aspects-fr.html
+include doc/contracts-en.html
+include doc/contracts-fr.html
+include doc/makefile
+recursive-include examples *.py
+include examples/simple_window.glade
+include examples/simple_window.gladep
+include examples/contract_example.py
+include examples/logger_example.py

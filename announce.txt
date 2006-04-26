@@ -1,0 +1,40 @@
+What's new ?
+------------
+%CHANGELOG%
+
+
+What is logilab.aspects?
+------------------------
+
+logilab.aspects is a python package that enables Aspect Oriented
+Programming in Python. For now, it provides a set of ready-to-use
+aspects, and an easy way to create your own aspects. The current
+possibilities are still a bit limited, but it will soon provide a more
+exhaustive way to define and use more complex aspects.
+
+The aspects module contains some useful aspects such as:
+
+ * LoggerAspect:  trace all method calls.
+ * ContractAspect: contracts can be seen as a sub-part of aspects,
+   and this particular aspect will allow you to use contracts in
+   Python. We have choosen to consider contracts definitions as a part 
+   of documentation. The conditions are thus specified in method and 
+   modules docstrings.
+ * ProfilerAspect:  simple method profiler 
+ * DispatcherAspect: enable multimethods
+ * ConfirmationAspect: ask confirmation before an operation
+ * ObserverAspect: aspect implementation of the Observer Design Pattern
+
+logilab.aspects is free software distributed under the GNU Public Licence.
+
+Home page
+---------
+%WEB%
+
+Download
+--------
+%FTP%
+
+Mailing list
+------------
+%MAILINGLIST%

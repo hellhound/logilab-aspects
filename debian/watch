@@ -1,0 +1,3 @@
+version=2
+ftp://ftp.logilab.org/pub/aspects//aspects-(.*)\.tar\.gz debian uupdate
+

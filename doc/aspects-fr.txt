@@ -1,0 +1,262 @@
+===========================================
+Quelques explications sur le module aspects
+===========================================
+
+
+Les principales parties
+-----------------------
+
+- le module **core** définit la classe de base des Aspects.
+- le module **weaver** définit la classe chargée du *tissage*. Une seule
+  instance du tisseur doit être créée dans tout le programme si on veut
+  pouvoir l'utiliser correctement. Cette instance est créée dans ce
+  module et on l'obtient par ::
+
+	 from logilab.aspects.wevaer import weaver
+
+  Les principales opérations que l'on peut effectuer avec le tisseur
+  sont *weave_pointcut* et *unweave_pointcut* qui tissent ou détissent
+  le code lié à un aspect sur un ensemble de points d'arrêts. Il existe
+  également des méthodes qui simplifient le tissage d'un aspect dans
+  l'ensemble d'un module ou l'ensemble d'une classe / instance.	  
+- Le module *lib* contient l'ensemble des aspects de
+  base que l'on peut souhaiter utiliser. Pour le moment, il en existe
+  deux :
+  
+       * **LoggerAspect** qui va tracer l'ensemble des appels de méthodes ;
+       * **ContractAspect** qui permet l'utilisation de contrats en Python.
+       * Il existe d'autres aspects comme **ProfilerAspect**, **DispatcherAspect**,
+         **ConfirmationAspect** ou **ObserverAspect**, mais ils sont en
+	 cours de développement et ils ne sont ici que pour donner des
+	 idées de ce qu'il est possible de faire avec les aspects ou
+	 des idées d'améliorations.
+- Enfin, il y a un module de tests unitaires, ainsi que des exemples
+  d'utilisation des aspects précités dans le répertoire *examples*.
+  Par exemple, les exemples des *contrats* et du *logger* se trouvent ici :
+  ::
+
+	aspects/examples/contract_example.py
+	aspects/examples/logger_example.py
+
+
+
+Comment définir un point d'arrêt
+--------------------------------
+
+Lorsque vous souhaitez tisser un aspect sur une classe entière, ou sur un module
+entier, vous pouvez directement utiliser les méthode *weave_methods* ou
+*weave_module*. Mais lorsque vous souhaitez tisser un aspect seulement sur
+une partie de la classe (c.a.d pas sur l'ensemble de ses méthodes), alors
+vous devrez créer une instance de classe *PointCut*, puis appeler la
+méthode *weave_pointcut*.
+
+Un point d'arrêt, dans ce paquet, est tout simplement un dictionnaire avec
+pour clés, des instances ou des classes, et pour valeurs, des listes de méthodes
+sur lesquelles vous souhaitez appliquer l'aspect.
+La classe *PointCut* dérivant du type dictionnaire , il est possible de définir
+directement ses clés et ses valeurs, mais il est cependant conseillé d'utiliser
+les méthodes existantes :
+
+- **add_method** (resp. **remove_method**) qui va ajouter (resp. retirer) une
+  méthode, relative à une classe ou instance donnée, dans le Pointcut
+
+- la liste des méthodes statiques de la classe *PointCut* qui permettent
+  d'instantier directement un objet *PointCut* à partir d'une classe,
+  d'une instance, ou d'un module :
+
+   + **create_pointcut_from_module()**
+   
+   + **create_pointcut_from_class()**
+
+Quand l'objet est créé, pour tisser l'aspect, il suffit de faire : ::
+
+      weaver.weave_pointcut(pointcut, aspect_class)
+
+
+	
+Un exemple d'utilisation
+------------------------
+
+(Extrait de logger_example.py) :
+
+::
+
+	# On importe le tisseur et l'aspect qu'on souhaite utiliser
+	from logilab.aspects.weaver import weaver
+	from logilab.aspects.lib.logger import LoggerApsect
+	import sys
+	
+	stack = StackImpl()
+
+	# Ajoutons un élément à la pile, l'appel n'est pas tracé
+	stack.push("an element")
+
+	# on applique l'aspect (on spécifie que le traçage se fera
+	# sur la sortie standard d'erreur)
+	weaver.weave_methods(stack, LoggerAspect, sys.stderr)
+
+	# Rajoutons un autre élément. Maintenant, l'appel sera tracé
+	stack.push("another element")
+
+	# On enlève l'aspect Logger
+	weaver.unweave(stack, LoggerAspect)
+
+	# Maintenant, les appels ne sont plus tracés
+	stack.push("a third element")
+
+
+Dans cette exemple, on a appliqué un aspect un une instance donnée. Par
+conséquent, les autres instances de la même classe ne seront pas aspectées.
+Si on avait voulu faire en sorte que toutes les instances d'une classe soient
+aspectées, il aurait alors fallu tisser l'aspect non pas sur l'instance, mais
+directement sur la classe. La syntaxe est la même ::
+
+	    weaver.weave_methods(StackImpl, LoggerAspect, sys.stderr)
+
+
+Comment créer son aspect:
+-------------------------
+
+Pour l'instant, il n'est possible de définir que ce qui va être exécuté
+avant et après des appels de méthodes. Il sera rapidement possible de définir
+le même genre de comportement pour la modification d'attributs.
+
+Pour créer un nouvel aspect, il faut créer une classe qui hérite de
+*AbstractAspect* (dans *aspects.core*), et définir les méthodes *before()*
+et *after()* et *around()*. Il est tout à fait possible de ne surcharger
+qu'une seule de ces trois méthodes pusique le comportement par défaut
+est *simplement de passer*. Il est **important**, lorsque l'on surcharge
+la méthode *around* de faire appel dedans à la méthode *self._proceed* qui
+correspond à l'appel de la méthode wrappée.
+
+Ecrivons un aspect simple qui ne fait que écrire **BEFORE** avant que
+la méthode ne soit effectivement appelée et **AFTER** après.
+
+::
+
+    from logilab.aspects.core import AbstractAspect
+
+    class SimpleAspect(AbstractAspect):
+    
+	def before(self, wobj, context, *args, **kwargs):
+	    """Before method
+	    """
+	    print "BEFORE ",context['method_name']
+	    
+
+	def after(self, wobj, context, *args, **kwargs):
+	    """After method.
+	    print the return value
+	    """
+	    print "AFTER ",self.method_name,", return value is ", context['ret_v']
+
+
+Cet exemple est très simple et n'a pas vraiment d'utilité, mais il permet
+de voir comment doit être créé un aspect.
+Quelques précisions sur le code ci-dessus:
+
+- les paramètres de *before()* sont :
+
+      * *self* : l'instance de l'aspect
+      
+      * *wobj* : l'instance de l'objet tissé, c'est à dire l'objet
+        sur lequel est appelée la méthode qu'on a wrappée.
+	
+      * context : un dictionnaire qui contient un ensemble de valeurs
+        relatives à l'exécution de la méthode. (cf. ci-dessous)
+	
+      * *args* et *kwargs* sont les arguments passés à la méthode
+	 wrappée. Si l'on souhaite avoir le nom exact des arguments
+	 ainsi que leur valeur au moment de l'appel, il existe une
+	 fonction dans le module *aspects/prototypes* (*reassign_function_arguments*)
+	 qui renvoie un dictionnaire avec le nom des paramètres en "clés", et
+	 leur valeur au moment de l'appel en "valeurs".
+- les paramètres de *after()*  et de *around()* sont les mêmes que
+  pour *before*
+
+- *context* possède les clés suivantes :
+      * *method_name* qui représente le nom de la méthode appelée.
+        (disponible dans *before()*, *around()*, et *after()*)
+	
+      * *ret_v* qui représente la valeur de retour de la méthode
+        wrappée.
+        (disponible dans *after()*)
+	
+      * *excption* qui représente l'exception levée par la méthode
+        wrappée pendant son exécution. Si la méthode n'a levé aucune
+	exception, alors *exec_excpt* vaut None.
+	(disponible dans *after()*)
+
+
+**IMPORTANT** : le tisseur (classe *Weaver*) est un Singleton qui garde à tout
+moment l'ensemble des informations relatives aux méthodes tissées, c'est-à-dire
+quelle méthode a été tissée avec quel aspect, etc.. Lorsque l'on tisse
+un aspect sur une méthode, le tisseur regardera si cet aspect a déjà été tisser,
+et, dans ce cas, utilisera l'instance déjà existante de cet aspect. Cela
+va rapidement changer à cause des contraintes que cela induit.
+
+Exemples des aspects fournis avec le module
+-------------------------------------------
+
+Le module *aspects* contient des aspects utiles comme :
+
+* **LoggerAspect** : pour journaliser l'ensemble des appels de méthodes
+
+* **ContractAspect** : les contrats peuvent être vus comme une sous-partie des
+  aspects. Cet aspect va permettre de faire de la programmation par contrats.
+  Nous avons choisi de considérer les définitions de contrats comme partie
+  intégrante de la documenation. Les conditions sont donc spécifiées dans
+  les chaînes de documentation des méthodes, et des modules. Vous pourrez
+  trouver plus d'informations sur les contrats et les aspects ici_.
+
+* Il y a également d'autres aspects comme **ProfilerAspect** (un simple
+  profiler de méthodes), **DispatcherAspect** (pour permettre l'utilisation
+  de multiméthodes), **ConfirmationAspect** (pour demander confirmation avant
+  une opération), ou bien **ObserverAspect** (une implémentation en aspects
+  du patron de conception Observer), mais ils ne sont pas toujours complètement
+  implémentés. Quoiqu'il en soit, vous pouvez toujours les utiliser pour
+  vous donner des idées d'aspects utiles ou pour d'améliorations.
+
+Plus d'informations à propos de l'AOP
+-------------------------------------
+
+Voici un ensemble de liens utiles pour la **Programmation orientée Aspect**:
+
+* `L'idée originale`_.
+
+* `Le portail officiel pour les aspects`_.
+
+* Une autre `page pleine de liens sur les aspects`_.
+
+* AspectJ est une implémentation complète de l'AOP. Voici un `tutorial`_.
+
+* `Quelques résultats`_ du moteur de recherche de citations de NEC.
+
+* D'autres solutions en Python pour l'AOP : Pythius_, et PEAK_ (qui n'est en réalité pas uniquement une implémentation pour les aspects)
+
+
+Téléchargement
+--------------
+
+Le module *aspects* peut être téléchargé à partir du `site FTP de Logilab`_.
+Vous y trouverez une archive contenant les sources du module ainsi que
+des paquets debian. Pour l'installer à partir des sources, il suffit de
+taper : **python setup.py install** après avoir décompressé l'archive.
+
+
+Vos commentaires
+----------------
+
+N'hésitez pas à nous faire de tout commentaire, patch, ou question sur
+la liste de diffusion `python-projects`_.
+
+.. _ici: contracts-fr.html
+.. _`L'idée originale`: http://www.parc.xerox.com/csl/groups/sda/publications/papers/Kiczales-ECOOP97/for-web.pdf
+.. _`Le portail officiel pour les aspects`: http://www.aosd.net
+.. _`page pleine de liens sur les aspects`: http://www.volantec.biz/aspect.htm
+.. _`tutorial`: http://www.eclipse.org/aspectj/
+.. _`Quelques résultats`: http://citeseer.nj.nec.com/highley99aspect.html
+.. _Pythius: http://pythius.sourceforge.net/
+.. _PEAK: http://peak.telecommunity.com/Articles/WhatisPEAK.html
+.. _`site FTP de Logilab`: ftp://ftp.logilab.org/pub/aspects
+.. _`python-projects`: http://lists.logilab.org/mailman/listinfo/python-projects

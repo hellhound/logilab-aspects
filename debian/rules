@@ -1,0 +1,68 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+
+build: DH_OPTIONS=
+build: build-stamp
+build-stamp: 
+	dh_testdir
+	python setup.py -q build ; \
+	touch build-stamp
+
+clean: 
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+	rm -rf build
+	find . -name "*.pyc" | xargs rm -f
+	rm -f changelog.gz
+	dh_clean
+
+install: DH_OPTIONS=
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	python setup.py -q install_lib --no-compile --install-dir=debian/python-logilab-aspects/usr/lib/site-python
+	python setup.py -q install_headers --install-dir=debian/python-logilab-aspects/usr/include/
+	# remove sub-package __init__ file (created in logilab-common)
+	rm debian/python-logilab-aspects/usr/lib/site-python/logilab/__init__.py
+	# remove test directory (installed doc/tests)
+	rm -rf debian/python-logilab-aspects/usr/lib/site-python/logilab/aspects/test
+	# install tests
+	(cd test && find . -type f -not \( -path '*/CVS/*' -or -name '*.pyc' \) -exec install -D --mode=644 {} ../debian/python-logilab-aspects/usr/share/doc/python-logilab-aspects/test/{} \;)
+
+
+# Build architecture-independent files here.
+binary-indep: DH_OPTIONS=-i
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_install
+
+	dh_installexamples -i examples/* 
+	# install text documentation
+	cp -r doc/aspects-en.txt doc/aspects-fr.txt doc/contracts-en.txt doc/contracts-fr.txt debian/python-logilab-aspects/usr/share/doc/python-logilab-aspects/ 
+	# install html documentation
+	cp -r doc/aspects-en.html doc/aspects-fr.html doc/contracts-en.html doc/contracts-fr.html debian/python-logilab-aspects/usr/share/doc/python-logilab-aspects/html 
+	gzip -9 -c ChangeLog > changelog.gz
+	dh_installdocs -A README TODO changelog.gz 
+	dh_installchangelogs
+	dh_link
+	dh_compress -X.py -X.ini -X.xml
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol 
+	dh_md5sums
+	dh_builddeb
+
+
+binary: binary-indep 
+.PHONY: build clean binary-arch binary-indep binary
+

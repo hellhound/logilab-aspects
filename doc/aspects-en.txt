@@ -1,0 +1,255 @@
+=======================================
+Some explanations on the aspects module
+=======================================
+
+
+The main parts
+--------------
+
+- The **core** module defines the base class for all aspects.
+- The **weaver** module defines the class which is responsible for
+  *weaving* code. The Weaver class is a Singleton, and you
+  can import the existing instance created in the *weaver* module, using
+  this import command : ::
+
+	 from logilab.aspects.weaver import weaver
+
+
+
+  The main methods which can be called on the weaver's instance are
+  *weave_pointcut* and *unweave_pointcut* which weave and unweave some
+  aspect-related code on a specified list of breakpoints. There are
+  also some convenience methods to weave directly on an entire module,
+  or class, or instance without having to create a PointCut's instance.
+- The *lib* module contains some useful aspects like :
+
+ - **LoggerAspect** which will trace all method calls.
+ -  **ContractAspect** which will enable design by contract in
+    Python.
+ - Other aspects exist like **ProfilerAspect**, **DispatcherAspect**,
+   **ConfirmationAspect** or **ObserverAspect**, but they are not
+   always fully implemented. Anyway, you can use them or want to
+   have a look at them to give you ideas of useful aspects or
+   improvements.
+  
+- Some unit tests, and some examples can be found in the tests or examples
+  directory :
+  ::
+
+	aspects/examples/contract_example.py
+	aspects/examples/logger_example.py
+
+
+Defining a Pointcut
+-------------------
+
+When you want to weave an aspect on an entire class, or module, you will
+directly use the *weave_methods* or *weave_module* methods. But, when you
+want to weave an aspect only in a part of the class (i.e. not on all methods),
+then what you'll have to do is to create a PointCut's instance, and then
+call the *weave_pointcut* method.
+
+A PointCut (in this package), is basically a dictionnary with instances or classes
+as keys, and the list of method's names which you want weave an aspect on.
+As PointCut inherits the 'dict' Python base type, you can directly
+defines its keys and values, though it is recommended to use the provided
+methods :
+
+- **add_method** (resp. **remove_method**) which will add (resp. remove)
+  a method_name, for a given instance or class, to the pointcut
+
+- the list of static methods that instantiate directly a Pointcut from a class, an instance, or a module :
+
+   + **create_pointcut_from_module()**
+   + **create_pointcut_from_class()**
+
+When the pointcut is created, then you just have to weave the aspect
+on it by doing : ::
+
+	       weaver.weave_pointcut(pointcut, aspect_class)
+
+
+
+
+A simple use case
+-----------------
+
+(Taken from logger_example.py) :
+
+::
+
+	# Import the weaver and the aspect to use
+	from logilab.aspects.weaver import weaver
+	from logilab.aspects.lib.logger import LoggerApsect
+	import sys
+	
+	stack = StackImpl()
+
+	# Push an element on the stack, the method call is not traced
+	stack.push("an element")
+
+	# Weave aspect code (log will be done on sys.stderr)
+	weaver.weave_methods(stack, LoggerAspect, sys.stderr)
+
+	# Push an other element, method call will now be traced
+	stack.push("another element")
+
+	# Unweave logger aspect
+	weaver.unweave(stack, LoggerAspect)
+
+	# Now, call methods aren't traced anymore
+	stack.push("a third element")
+
+
+In this example, we have weaved an aspect on a given instance. As a
+consequence, other instances of the same class will not be
+aspected. The best way of weaving all class instances, is to weave the
+aspect directly on the class, not on the instances. The syntax is
+exactly the same : ::
+
+	    weaver.weave_methods(StackImpl, LoggerAspect, sys.stderr)
+
+
+Creating your own aspects
+-------------------------
+
+For now, it's only possible to wrap methods, not attribute accesses.
+
+To create a new aspect, you must define a class which inherits from
+*AbstractAspect* (in *aspects.core*), and define *before()*, *after()* and
+*around()* methods. Note that you can choose to override only one of this
+three methods since the default behaviour is to "simply pass". It is
+**important**, when overriding the *around* method to explicitly call
+*self._proceed(...)* which is the effective call to the wrapped method. 
+
+
+Let's write a simple aspect which will write **BEFORE** before the method
+call and **AFTER** after.
+
+::
+
+    from logilab.aspects.core import AbstractAspect
+
+    class SimpleAspect(AbstractAspect):
+    
+	def before(self, wobj, context, *args, **kwargs):
+	    """Before method
+	    """
+	    print "BEFORE ",context['method_name']
+	    
+
+	def after(self, wobj, context, *args, **kwargs):
+	    """After method.
+	    print the return value
+	    """
+	    print "AFTER ",self.method_name,", return value is ", context['ret_v']
+
+
+This example is quite simple, and is not really useful, but it should
+show how to define your own aspects.
+
+Here is some information on the above code:
+
+- The *before()* parameters are :
+
+ + *self* : The aspect instance
+ 
+ + *wobj* : The weaved object instance (on which is called
+   the wrapped method)
+
+ + *context* : a dictionnary which holds a set of values in relation
+   with method calls. (see below).
+   
+ + *args* and *kwargs* are the arguments passed to the wrapped method.
+   If inside *before()*, you want to have the name and the value of
+   each argument, you can use the function *reassign_function_arguments*
+   in the *aspects.prototypes* module. It will return a dictionary
+   containing arg names as keys, and arg values as values.
+	 
+- The *after()* and *around()* parameters are the same.
+
+- *context* can have the following keys :
+
+ + *method_name* : the called method's name.
+ 
+ + *ret_v* which : the value returned by the wrapped method.
+ 
+ + *excption* which : the exception raised by the wrapped method,
+   or None if no exception was raised.
+
+
+
+**IMPORTANT** : The weaver is a Singleton that holds all informations related
+to the weaving, for instance which method is weaved, which aspect it's weaved
+with, etc.. When an aspect is weaved on a method, the weaver will look is that
+aspect has already been instantiated, and in that case, it will use that aspect's
+instance to weave code around the method. This will soon be changed because
+it can be unconvenient. (aspects behave a bit like Singleton).
+
+
+Examples of aspects provided by the module
+------------------------------------------
+
+The *aspects* module contains some useful aspects like :
+
+* **LoggerAspect** : which will trace all method calls.
+
+* **ContractAspect** : contracts can be seen as a sub-part of
+  aspects, and this particular aspect will allow you to use contracts
+  in Python. We have choosen to consider contracts definitions as a
+  part of documentation. The conditions are thus specified in method
+  and modules docstrings. You can find more information about
+  contracts and aspects here_.
+
+* There are other aspects like **ProfilerAspect** (a simple method
+  profiler), **DispatcherAspect** (to enable multimethods),
+  **ConfirmationAspect** (to ask confirmation before an operation), or
+  **ObserverAspect** (an aspect implementation of the Observer Design
+  Pattern), but they are not always fully implemented. Anyway, you can
+  use them or want to have a look at them to give you ideas of useful
+  aspects or improvements.
+
+
+More information about AOP
+--------------------------
+
+Here is a set of useful links for **Aspect Oriented Programming**:
+
+* `The original idea`_.
+
+* `Aspect home page`_.
+
+* Another `page listing aspects links`_.
+
+* AspectJ is a Java exhaustive implementation of AOP. Here's an `AspectJ tutorial`_.
+
+* Some `citesite results`_.
+
+* Some other Python solutions for aspect programming : Pythius_, and PEAK_ (which is actually not only an aspect implementation).
+
+
+Download
+--------
+
+The *aspect* aspects module can be downloaded from `Logilab's ftp site`_.
+You will find the source distribution and some debian packages.  To
+install it from the source distribution, just type **python setup.py
+install** after having unzipped the archive.
+
+
+Feedback
+--------
+      
+Please send any comment, patch or question to the `python-projects`_ mailing-list. 
+
+
+.. _here: contracts-en.html
+.. _`The original idea`: http://www.parc.xerox.com/csl/groups/sda/publications/papers/Kiczales-ECOOP97/for-web.pdf
+.. _`Aspect home page`: http://www.aosd.net
+.. _`page listing aspects links`: http://www.volantec.biz/aspect.htm
+.. _`AspectJ tutorial`: http://www.eclipse.org/aspectj/
+.. _`citesite results`: http://citeseer.nj.nec.com/highley99aspect.html
+.. _Pythius: http://pythius.sourceforge.net/
+.. _PEAK: http://peak.telecommunity.com/Articles/WhatisPEAK.html
+.. _`Logilab's ftp site`: ftp://ftp.logilab.org/pub/aspects
+.. _`python-projects`: http://lists.logilab.org/mailman/listinfo/python-projects

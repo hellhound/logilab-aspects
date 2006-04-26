@@ -1,0 +1,12 @@
+Aspects ...
+
+    - Manage inheritance in aspects (not only in contracts)
+
+
+    - reST in contracts
+
+    - look if metaclasses can be used (and be useful) here
+
+
+    - IMPORTANT : change the way to instantiate aspects (one aspect instance
+      for each method !! Very slow and heavy !!) 

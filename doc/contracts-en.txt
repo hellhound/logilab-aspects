@@ -1,0 +1,116 @@
+===============================
+Contract specific documentation
+===============================
+
+Contracts are here defined as aspects. Contract activation is being done
+by weaving ContractApsect code.
+
+Syntax :
+---------
+
+The contracts are read in **docstrings** since they can be considered as
+part of the documentation. The part of the docstring which holds contract
+definitions is divided in three parts : **pre**, **post**, and **inv**.
+These three parts must be grouped together in the docstring. Each part
+looks like:
+
+::
+
+	separator:
+        condition1
+        condition2
+        ...
+        conditionN
+
+where *separator* can either be **pre**, **post** or **inv** according
+to what type of condition you want to describe. The conditions are Python
+boolean expressions.
+
+:Example:
+
+::
+
+	def push(self, obj):
+	    """
+	    pre:
+	        obj is not None
+	        not self.is_full()
+	    post:
+	        not self.is_empty()
+	        self.top() == obj
+	    """
+	    raise NotImplementedError
+
+Here, preconditions are : *obj is not None* and *not self.is_empty()*,
+postconditions are : *not self.is_empty()* and *self.top() == obj*.
+
+
+:Key words:
+
+The key words that can be used in contracts are :
+
+- **__return__** : the value returned by the wrapped method. (This is
+  only a keyword in postconditions.)
+- **__old__** : which allows you to use the state of a variable at
+  the beginning of the method. **__old__**
+  can only be used in post-conditions.
+  As an example, we can write a post-condition which will check that
+  a stack's size has been incremented after a push() call. This can be
+  done by writing : ::
+
+    """
+	post:
+	    self.size() == __old__.self.size() + 1
+	"""
+
+
+- **forall(sequence, mapped_func)** which will check that applying 
+  mapped_func on all elements of the sequence will give a "True" result.
+  If no "mapped_func" is given, then all the sequence elements must be
+  'True' for forall to return "True". In the following example, we will
+  test that a list is well sorted (code adapted from *pycontract*,
+  *http://www.wayforward.net/pycontract/pep-contract.html*) : ::
+
+  	def sort(self, array):
+        """
+        post:
+            # array size is unchanged
+            len(array) == len(__old__.array)
+            
+            # array is ordered
+            forall([array[i] >= array[i-1] for i in range(1, len(array))])
+        """
+        array.sort()
+
+
+
+- **exists(sequence, mapped_func)** which is the same as *forall*, but
+  only one element has to conatin a 'True' result for *exists* to return
+  True.
+
+
+
+The code for *forall* and *exists* has been taken from
+*http://www.wayforward.net/pycontract/pep-contract.html* which defines
+a way to implements contracts in Python.
+
+:Inheritance:
+
+The inheritance rules are the following ones :
+
+- *pre-conditions* can only be **kept** or **weakened** through
+  inheritance.  Otherwise, it's a contract violation. As a
+  consequence, pre-conditions in a sub-class are *ORed* with 
+  pre-conditions in base classes.
+- *post-conditions* can only be **kept** or **strengthened**,
+  otherwise it's a contract violation. As a consequence,
+  post-conditions in a sub-class are *ANDed* with post-conditions
+  in base classes.  
+- The same rules are applied for *invariants* and *post-conditions*
+
+
+:Exception management:
+
+If an exception is raised in the wrapped method, then post-conditions are
+not tested, but invariants are.
+

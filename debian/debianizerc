@@ -1,0 +1,11 @@
+SPACKAGE=logilab-aspects
+
+MAINTAINER=Adrien Di Mascio
+MAINTAINER_EMAIL=adrien.di.mascio@logilab.fr
+
+PYVERSIONS=2.2 2.3
+
+ARCHITECTURE_DEPENDANT=0
+
+HANDLER=logilab
+LOGILAB=1

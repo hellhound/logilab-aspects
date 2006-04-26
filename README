@@ -1,0 +1,41 @@
+README for logilab.aspects
+==========================
+
+Install
+-------
+From the source distribution, extract the tarball and run ::
+
+    python setup.py install
+
+
+Documentation
+-------------
+
+The aspects module enables Aspect Programming with Python.
+
+For further information on how to use it, please check :
+    ./doc/aspects-en.txt
+
+
+Comments, support, bug reports
+------------------------------
+Use the python-projects@logilab.org mailing list. Since we do not have
+publicly available bug tracker yet, bug reports should be emailed
+there too. 
+
+You can subscribe to this mailing list at
+http://www.logilab.org/mailinglists/python_projects/mailinglist_register_form
+
+Archives are available at 
+http://lists.logilab.org/pipermail/python-projects/
+
+If you prefer speaking french instead of english, you can use the
+generic forum-fr@logilab.org mailing list.
+
+Contributors
+------------
+* Frédéric Mantegazza : feedback, bug reports
+* Wei Wei : bug reports
+* Other people have contributed by their feedback, if I've forgotten
+  you, send me a note !
+  

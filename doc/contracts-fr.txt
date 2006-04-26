@@ -1,0 +1,126 @@
+=====================================
+Documentation spécifique aux contrats
+=====================================
+
+
+Les contrats sont ici définis comme des aspects. Activer les contrats
+revient donc à tisser l'aspect "contrat" dans le code souhaité.
+
+Syntaxe :
+---------
+
+Les contrats sont lus dans les **docstrings** des méthodes Python.
+La partie de la *docstring* qui est consacrée à décrire les contrats se
+divise en trois parties : **pre**, **post**, et **inv**. Ces trois parties
+doivent **IMPÉRATIVEMENT** se suivre dans la *docstring*. Chacune de ces
+parties est de la forme :
+
+::
+
+	delimiteur:
+        condition1
+        condition2
+	    ...
+	    conditionN
+
+où le *delimiteur* est **pre**, **post** ou **inv** suivant
+que l'on veuille décrire respectivement une pré-condition, une post-condition
+ou un invariant. La syntaxe des conditions est directement la syntaxe
+de Python.
+
+:Exemple:
+
+::
+
+	def push(self, obj):
+	    """
+	    pre:
+	        obj is not None
+	        not self.is_full()
+	    post:
+	        not self.is_empty()
+	        self.top() == obj
+	    """
+	    raise NotImplementedError
+
+Ici, les préconditions sont : *obj is not None* et *not self.is_empty()*. Les
+postconditions sont : *not self.is_empty()* et *self.top() == obj*.
+
+
+:Mots clés:
+
+Les mots-clés qui peuvent être utilisés dans les contrats sont :
+
+- **__return__** : la valeur de retour de la méthode (uniquement dans les
+  post-conditions).
+- **__old__** : pour avoir accès à l'état d'une variable telle qu'elle était
+  à l'entrée de la fonction. **__old__** ne s'utilise donc uniquement que
+  dans les post-conditions. Les variables que l'on peut désigner avec
+  **__old__** sont les variables passées en paramètres de la méthode ou
+  *self*. En théorie, il est en fait possible d'accéder avec *__old__* à toutes
+  les variables auxquelles on pourrait avoir accès à la premièr ligne
+  de la méthode wrappée.
+  Un exemple d'utilisation de **__old__** : on pourrait très bien dans la
+  méthode *push()* d'une classe d'implémentation d'une *Pile* vouloir
+  s'assurer, dans les post-conditions que la taille de la pile a bien
+  été incrémentée de 1. C'est possible en écrivant : ::
+
+	  """
+	  post:
+	      self.size() == __old__.self.size() + 1
+	  """
+
+
+- **forall(sequence, mapped_func)** qui vérifie que l'application de
+  mapped_func sur tous les éléments de la séquence donne un résultat
+  vrai. Si mapped_func n'est pas précisé, alors tous les éléments de
+  la séquence doivent être vrai.
+  Dans l'exemple suivant, on va vérifier que le tableau est bien
+  trié à la fin de la méthode sort(). (code adapté de *pycontract*,
+  *http://www.wayforward.net/pycontract/pep-contract.html*) ::
+
+  	def sort(self, array):
+        """
+        post:
+            # array size is unchanged
+            len(array) == len(__old__.array)
+            
+            # array is ordered
+            forall([array[i] >= array[i-1] for i in range(1, len(array))])
+        """
+        array.sort()
+
+  
+
+- **exists(sequence, mapped_func)** : idem que *forall()* mais un seul
+  des éléments de la liste doit être vrai.
+
+
+Le code de *forall* et *exists* a été pris dans le projet :
+*http://www.wayforward.net/pycontract/pep-contract.html* qui définit
+une manière d'implémenter les contrats en Python.
+
+:Héritage:
+
+Les règles concernant l'héritage de contrats sont les suivantes :
+
+- Les *pré-conditions* ne peuvent être renforcées dans une sous-classe.
+  Elles peuvent uniquement être **conservées** ou **affaiblies**, sinon
+  c'est une violation de contrat. Par conséquent, on applique un *OU*
+  entre les pré-conditions d'une méthode et celles de la même méthode dans
+  les classes-mères.
+- Les *post-conditions* ne peuvent pas être affaiblies. Elles sont donc
+  soit **conservées** soit **renforcées**, sinon, c'est une violation de
+  contrat. Par conséquent, on applique un *ET* entre les pré-conditions
+  d'une méthode et celles de la même méthode dans les classes-mères.
+- Les *invariants* appliquent les mêmes règles que pour les *post-conditions*.
+
+
+:Gestion des exceptions:
+
+Si une exception est levée par la méthode wrappée, alors les post-conditions
+ne sont pas prises en compte. En revanche, les invariants sont toujours
+vérifiés.
+Pour le reste, les "contrats" étant géré comme des aspects,
+la gestion des exceptions se fait de la même manière.
+
