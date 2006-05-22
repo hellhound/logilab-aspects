@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Adrien Di Mascio <Adrien.DiMascio@logilab.fr> 
 Uploaders: Alexandre Fayolle <afayolle@debian.org>
 Build-Depends: debhelper (>= 5.0.0), python-dev
-Standards-Version: 3.6.2
+Standards-Version: 3.7.2
 
 Package: python-logilab-aspects
 Architecture: all
