@@ -10,6 +10,7 @@ Standards-Version: 3.7.2
 Package: python-logilab-aspects
 Architecture: all
 Depends: ${python:Depends}, python-logilab-common (>=0.16.0-2)
+XB-Python-Version: ${python:Versions}
 Description: aspect Programming with Python 
  aspects is a module that enables Aspect Oriented Programming with
  Python.  It also provides an implementation of 'Design By Contract'
