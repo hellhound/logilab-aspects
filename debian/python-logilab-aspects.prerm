@@ -4,12 +4,7 @@
 # Written 1998 by Gregor Hoffleit <flight@debian.org>.
 #
 
-dpkg --listfiles python-logilab-aspects |
-	awk '$0~/\.py$/ {print $0"c\n" $0"o"}' |
-	xargs rm -f >&2
-
-
-
 
 #DEBHELPER#
 
+exit 0

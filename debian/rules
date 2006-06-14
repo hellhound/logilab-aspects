@@ -29,10 +29,9 @@ install: build
 	dh_clean -k
 	dh_installdirs
 
-	python setup.py -q install_lib --no-compile --install-dir=debian/python-logilab-aspects/usr/lib/site-python
-	python setup.py -q install_headers --install-dir=debian/python-logilab-aspects/usr/include/
+	python setup.py -q install --no-compile --prefix=debian/python-logilab-aspects/usr
 	# remove sub-package __init__ file (created in logilab-common)
-	rm debian/python-logilab-aspects/usr/lib/site-python/logilab/__init__.py
+	rm debian/python-logilab-aspects/usr/lib/python*/site-packages/logilab/__init__.py
 	# remove test directory (installed doc/tests)
 	rm -rf debian/python-logilab-aspects/usr/lib/site-python/logilab/aspects/test
 	# install tests
@@ -54,6 +53,8 @@ binary-indep: build install
 	gzip -9 -c ChangeLog > changelog.gz
 	dh_installdocs -A README TODO changelog.gz 
 	dh_installchangelogs
+	dh_pycentral
+	dh_python
 	dh_link
 	dh_compress -X.py -X.ini -X.xml
 	dh_fixperms

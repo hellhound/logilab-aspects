@@ -3,15 +3,13 @@ Section: python
 Priority: optional
 Maintainer: Adrien Di Mascio <Adrien.DiMascio@logilab.fr> 
 Uploaders: Alexandre Fayolle <afayolle@debian.org>
-Build-Depends: debhelper (>= 5.0.0), python-dev
+Build-Depends: debhelper (>= 5.0.37.1), python-dev (>=2.3.5-7), python (>=2.3.5-7), python-central
+XS-Python-Version: all
 Standards-Version: 3.7.2
 
 Package: python-logilab-aspects
 Architecture: all
-Depends: python, python-logilab-common
-Provides: python2.2-logilab-aspects, python2.3-logilab-aspects, python2.4-logilab-aspects, python-logilab-aspects-test
-Conflicts: python2.2-logilab-aspects, python2.3-logilab-aspects, python2.4-logilab-aspects, python-logilab-aspects-test
-Replaces: python2.2-logilab-aspects, python2.3-logilab-aspects, python2.4-logilab-aspects, python-logilab-aspects-test
+Depends: ${python:Depends}, python-logilab-common (>=0.16.0-2)
 Description: aspect Programming with Python 
  aspects is a module that enables Aspect Oriented Programming with
  Python.  It also provides an implementation of 'Design By Contract'
