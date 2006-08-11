@@ -47,6 +47,6 @@ ftp = 'ftp://ftp.logilab.org/pub/aspects/'
 web = "http://www.logilab.org/projects/aspects/"
 mailinglist = 'mailto://python-projects@lists.logilab.org'
 
-pyversions = ["2.2", "2.3", "2.4"]
+pyversions = ["2.3", "2.4"]
 
 subpackage_of = 'logilab'
