@@ -484,4 +484,5 @@ class ContractAspect(AbstractAspect):
 
 
 
-
+def enable_dbc_on(obj):
+    weaver.weave_object(obj, ContractAspect)

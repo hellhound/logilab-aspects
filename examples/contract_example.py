@@ -139,11 +139,8 @@ def run():
     # Create a stack which can hold 3 elements
     stack = StackImpl(3)
 
-    from logilab.aspects.weaver import weaver
-    from logilab.aspects.lib.contracts import ContractAspect, \
-         ContractFailedError
-
-    weaver.weave_methods(stack, ContractAspect)
+    from logilab.aspects.lib.contracts import enable_dbc_on, ContractFailedError
+    enable_dbc_on(stack)
 
     try:
         print "Empty stack, pop() should fail"
