@@ -20,9 +20,8 @@
 Logilab - www.logilab.fr - www.logilab.org - www.logilab.com
 """
 
-__revision__ = '$Id: __pkginfo__.py,v 1.18 2005-12-30 16:29:01 adim Exp $'
-
 modname = "aspects"
+distname = 'logilab-aspects'
 debian_name = 'logilab-aspects'
 
 numversion = (0, 1, 4)
