@@ -26,7 +26,7 @@ __revision__ = '$Id: weaver.py,v 1.28 2005-12-30 16:29:03 adim Exp $'
 
 import new
 import types
-from inspect import getmembers, ismethod
+from inspect import getmembers, ismethod, isdatadescriptor
 
 from logilab.aspects._exceptions import AlreadyAspectedError, ClassNotWeaved, \
      AspectFailure
@@ -147,8 +147,19 @@ class PointCut(dict):
         """
         if type(obj) == types.ModuleType:
             return PointCut.create_from_module(obj)
-        elif type(obj) in (types.InstanceType,
-                            types.ClassType, types.TypeType):
+        elif type(obj) not in (types.BooleanType, types.BufferType,
+                types.BuiltinFunctionType, types.BuiltinMethodType,
+                types.CodeType, types.ComplexType,
+                types.DictProxyType, types.DictType, types.DictionaryType,
+                types.EllipsisType, types.FileType, types.FloatType,
+                types.FrameType, types.FunctionType, types.GeneratorType,
+                types.GetSetDescriptorType, types.IntType,
+                types.LambdaType, types.ListType, types.LongType,
+                types.MemberDescriptorType, types.MethodType,
+                types.NoneType, types.NotImplementedType,
+                types.SliceType, types.StringType, types.StringTypes,
+                types.TracebackType, types.TupleType,
+                types.UnboundMethodType, types.UnicodeType, types.XRangeType):
             return PointCut.create_from_class(obj)
         
 
@@ -156,8 +167,10 @@ class PointCut(dict):
         """Static method that creates a PointCut from a class or class instance
         obj : the class or class instance
         """
+        def is_method_or_datadescriptor(obj):
+            return ismethod(obj) or isdatadescriptor(obj)
         pointcut = PointCut()
-        obj_dict = dict(getmembers(obj, ismethod))
+        obj_dict = dict(getmembers(obj, is_method_or_datadescriptor))
         for met_name in obj_dict:
             if not met_name.startswith('__'):
                 pointcut.add_method(obj, met_name)
@@ -256,18 +269,25 @@ def wrap_method(aspect, weaved_object, met_name):
     ####################################
 
     original_method = getattr(weaved_object, met_name)
-    # original_method = self._get_method(weaved_object, met_name)
-    # This is important if we want the wrapped_func to behave
-    # totally like the original one
-    wrapper.__doc__ = original_method.__doc__
-    
-    if original_method.im_self is not None:
-        met = new.instancemethod(wrapper, weaved_object,
-                                 weaved_object.__class__)
+    if isinstance(original_method, property):
+        setattr(weaved_object, met_name,
+            property(
+            new.instancemethod(wrapper, None, weaved_object),
+            new.instancemethod(wrapper, None, weaved_object),
+            new.instancemethod(wrapper, None, weaved_object)))
     else:
-        met = new.instancemethod(wrapper, None, weaved_object)
-    # We need to setattr the new wrapper method
-    setattr(weaved_object, met_name, met)
+        # original_method = self._get_method(weaved_object, met_name)
+        # This is important if we want the wrapped_func to behave
+        # totally like the original one
+        wrapper.__doc__ = original_method.__doc__
+        
+        if original_method.im_self is not None:
+            met = new.instancemethod(wrapper, weaved_object,
+                                     weaved_object.__class__)
+        else:
+            met = new.instancemethod(wrapper, None, weaved_object)
+        # We need to setattr the new wrapper method
+        setattr(weaved_object, met_name, met)
 
 
 
