@@ -208,84 +208,89 @@ def wrap_method(aspect, weaved_object, met_name):
     ####################################
     # The wrapper SCOPE begins here
     ####################################
-    def wrapper(wobj, *args, **kwargs):
-        """The wrapped method
-        raises an AspectFailure if aspect fails
-        """
-        #
-        context = {}
+    def wrapper(property_func=None):
+        def inner(wobj, *args, **kwargs):
+            """The wrapped method
+            raises an AspectFailure if aspect fails
+            """
+            #
+            context = {}
 
-        context['method_name'] = met_name
-        if isclass(weaved_object):
-            context['__class__'] = weaved_object
-        else:
-            context['__class__'] = weaved_object.__class__
+            context['method_name'] = met_name
+            context['property_func'] = property_func
+            if isclass(weaved_object):
+                context['__class__'] = weaved_object
+            else:
+                context['__class__'] = weaved_object.__class__
+                
+            exec_excpt = None # The exception raised by the wrapped method
+            tcbk = None       # The exception's traceback
+
+            # before is a shortcut for aspect.before => it's a bound method
+            # (the real first arg (the aspect instance) is hidden here)
+            # wobj represents the object weaved instance
+            aspect.before(wobj, context, *args, **kwargs)
+
             
-        exec_excpt = None # The exception raised by the wrapped method
-        tcbk = None       # The exception's traceback
-
-        # before is a shortcut for aspect.before => it's a bound method
-        # (the real first arg (the aspect instance) is hidden here)
-        # wobj represents the object weaved instance
-        aspect.before(wobj, context, *args, **kwargs)
-
-        
-        # Catch the exception
-        try:
-            ret_v = aspect.around(wobj, context, *args, **kwargs)
-            context['ret_v'] = ret_v
-        except:
-            dummy, exec_excpt, tcbk = sys.exc_info()
-            # Skip the first element of the traceback which refers to
-            # this method ('wrapped')
-            tcbk_list = traceback.format_tb(tcbk)[1:]
-            # Append traceback to exception args
-            exec_excpt.args += (''.join(tcbk_list),)
-            # According to Python Doc, not deleting tcbk would cause
-            # a ref cycle
-            # del tcbk
-            context['ret_v'] = None
-
-        context['exception'] = exec_excpt
-            
-        try:
-            aspect.after(wobj, context, *args, **kwargs)
-        except AspectFailure, failure:
-            failure.set_method_exception(exec_excpt)
-            raise # failure
-
-        # If no exception, then return ret_v
-        if not exec_excpt:
-            return ret_v
-        # Else, re-raise exception
-        else:
+            # Catch the exception
             try:
-                raise exec_excpt, None, tcbk
-            finally:
-                del tcbk
+                ret_v = aspect.around(wobj, context, *args, **kwargs)
+                context['ret_v'] = ret_v
+            except:
+                dummy, exec_excpt, tcbk = sys.exc_info()
+                # Skip the first element of the traceback which refers to
+                # this method ('wrapped')
+                tcbk_list = traceback.format_tb(tcbk)[1:]
+                # Append traceback to exception args
+                exec_excpt.args += (''.join(tcbk_list),)
+                # According to Python Doc, not deleting tcbk would cause
+                # a ref cycle
+                # del tcbk
+                context['ret_v'] = None
+
+            context['exception'] = exec_excpt
+                
+            try:
+                aspect.after(wobj, context, *args, **kwargs)
+            except AspectFailure, failure:
+                failure.set_method_exception(exec_excpt)
+                raise # failure
+
+            # If no exception, then return ret_v
+            if not exec_excpt:
+                return ret_v
+            # Else, re-raise exception
+            else:
+                try:
+                    raise exec_excpt, None, tcbk
+                finally:
+                    del tcbk
+        return inner
 
     ####################################
     # The wrapper SCOPE ends here
     ####################################
 
     original_method = getattr(weaved_object, met_name)
+    wrapper.__doc__ = original_method.__doc__
     if isinstance(original_method, property):
         setattr(weaved_object, met_name,
             property(
-            new.instancemethod(wrapper, None, weaved_object),
-            new.instancemethod(wrapper, None, weaved_object),
-            new.instancemethod(wrapper, None, weaved_object)))
+            new.instancemethod(wrapper('fget'), weaved_object,
+                weaved_object.__class__),
+            new.instancemethod(wrapper('fset'), weaved_object,
+                weaved_object.__class__),
+            new.instancemethod(wrapper('fdel'), weaved_object,
+                weaved_object.__class__)))
     else:
         # original_method = self._get_method(weaved_object, met_name)
         # This is important if we want the wrapped_func to behave
         # totally like the original one
-        wrapper.__doc__ = original_method.__doc__
-        
         if original_method.im_self is not None:
-            met = new.instancemethod(wrapper, weaved_object,
+            met = new.instancemethod(wrapper(), weaved_object,
                                      weaved_object.__class__)
         else:
-            met = new.instancemethod(wrapper, None, weaved_object)
+            met = new.instancemethod(wrapper(), None, weaved_object)
         # We need to setattr the new wrapper method
         setattr(weaved_object, met_name, met)
 

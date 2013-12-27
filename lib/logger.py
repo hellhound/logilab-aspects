@@ -47,7 +47,8 @@ class LoggerAspect(AbstractAspect):
         """
         met_name = context['method_name']
         classname = context['__class__'].__name__
-        method = self._get_base_method(wobj, met_name)
+        property_func = context['property_func']
+        method = self._get_base_method(wobj, met_name, property_func)
         self.log_device.write("Calling %s (%s) \n" % (met_name, classname))
         self.log_device.write("\twith values : \n")
         call_dict = reassign_function_arguments(method, args, kwargs)

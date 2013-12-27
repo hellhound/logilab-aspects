@@ -89,28 +89,35 @@ class AbstractAspect(object):
         """
         met_name = context['method_name']
         wclass = context['__class__']
-        return self._proceed(wobj, wclass, met_name, *args, **kwargs)
+        property_func = context['property_func']
+        return self._proceed(wobj, wclass, met_name, property_func,
+            *args, **kwargs)
 
-    def _proceed(self, wobj, wclass, met_name, *args, **kwargs):
+    def _proceed(self, wobj, wclass, met_name, property_func, *args, **kwargs):
         """The real call
         """
         # XXX FIXME : ugly code, and not bugsafe !
-        method = self._get_method(wobj, wclass, met_name)
-        return method.im_func(wobj, *args, **kwargs)
+        method = self._get_method(wobj, wclass, met_name, property_func)
+        if hasattr(method, 'im_func'):
+            return method.im_func(wobj, *args, **kwargs)
+        return method(*args, **kwargs)
     
     
-    def _get_method(self, wobj, wclass, met_name):
+    def _get_method(self, wobj, wclass, met_name, property_func=None):
         """Will try to find the appropriate method object according
         to wobj and met_name.
         Raises a KeyError if method cannot be found.
         """
         try:
-            return self._methods[wobj][met_name][0]
+            method = self._methods[wobj][met_name][0]
         except KeyError:
-            return self._methods[wclass][met_name][0]
+            method = self._methods[wclass][met_name][0]
+        if isinstance(method, property) and property_func is not None:
+            method = getattr(method, property_func, method)
+        return method
         
 
-    def _get_base_method(self, wobj, met_name):
+    def _get_base_method(self, wobj, met_name, property_func=None):
         """Will try to find the appropriate base method object according
         to wobj and met_name.
         Raises a KeyError if method cannot be found.
@@ -120,9 +127,12 @@ class AbstractAspect(object):
         will return the method as it was before this aspect was weaved.
         """
         try:
-            return self._methods[wobj][met_name][1]
+            method = self._methods[wobj][met_name][1]
         except KeyError:
-            return self._methods[wobj.__class__][met_name][1]
+            method = self._methods[wobj.__class__][met_name][1]
+        if isinstance(method, property) and property_func is not None:
+            method = getattr(method, property_func, method)
+        return method
     
 
 
